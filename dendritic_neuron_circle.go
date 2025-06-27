@@ -1,5 +1,3 @@
-
-
 package main
 
 import (
@@ -9,7 +7,7 @@ import (
 	"time"
 )
 
-// --- 1. Dendritic Compartment (Unchanged) ---
+// --- 1. Dendritic Compartment ---
 type DendriticCompartment struct {
 	weights []float64
 	bias    float64
@@ -34,7 +32,7 @@ func (dc *DendriticCompartment) Process(inputs []float64) float64 {
 	return math.Tanh(sum)
 }
 
-// --- 2. The Dendritic Neuron (Unchanged) ---
+// --- 2. Dendritic Neuron ---
 type DendriticNeuron struct {
 	compartments []*DendriticCompartment
 	somaWeights  []float64
@@ -42,126 +40,138 @@ type DendriticNeuron struct {
 }
 
 func NewDendriticNeuron(numInputs, numCompartments int) *DendriticNeuron {
-	compartments := make([]*DendriticCompartment, numCompartments)
-	for i := 0; i < numCompartments; i++ {
-		compartments[i] = NewDendriticCompartment(numInputs)
+	comps := make([]*DendriticCompartment, numCompartments)
+	for i := range comps {
+		comps[i] = NewDendriticCompartment(numInputs)
 	}
-
-	somaWeights := make([]float64, numCompartments)
-	for i := range somaWeights {
-		somaWeights[i] = rand.Float64()*2 - 1
+	sw := make([]float64, numCompartments)
+	for i := range sw {
+		sw[i] = rand.Float64()*2 - 1
 	}
-
 	return &DendriticNeuron{
-		compartments: compartments,
-		somaWeights:  somaWeights,
+		compartments: comps,
+		somaWeights:  sw,
 		somaBias:     rand.Float64()*2 - 1,
 	}
 }
 
 func (dn *DendriticNeuron) Forward(inputs []float64) (float64, []float64) {
-	compartmentOutputs := make([]float64, len(dn.compartments))
-	for i, compartment := range dn.compartments {
-		compartmentOutputs[i] = compartment.Process(inputs)
+	outs := make([]float64, len(dn.compartments))
+	for i, comp := range dn.compartments {
+		outs[i] = comp.Process(inputs)
 	}
-
-	finalSum := dn.somaBias
-	for i, output := range compartmentOutputs {
-		finalSum += output * dn.somaWeights[i]
+	sum := dn.somaBias
+	for i, o := range outs {
+		sum += o * dn.somaWeights[i]
 	}
-
-	finalOutput := 1.0 / (1.0 + math.Exp(-finalSum))
-	return finalOutput, compartmentOutputs
+	return 1.0 / (1.0 + math.Exp(-sum)), outs
 }
 
-// --- 3. Training (Unchanged) ---
+// --- 3. Training Data ---
 type TrainingData struct {
 	inputs   []float64
 	expected float64
 }
 
-func (dn *DendriticNeuron) Train(data []TrainingData, epochs int, learningRate float64) {
-	for epoch := 0; epoch < epochs; epoch++ {
-		totalError := 0.0
+// --- 4. Train with adaptive LR & early stopping ---
+func (dn *DendriticNeuron) Train(data []TrainingData, epochs int, initLR float64, patience int, minDelta float64) {
+	lr := initLR
+	bestErr := math.MaxFloat64
+	noImprovement := 0
+
+	for e := 0; e < epochs; e++ {
+		errSum := 0.0
+
 		for _, d := range data {
-			prediction, compartmentOutputs := dn.Forward(d.inputs)
-			err := d.expected - prediction
-			totalError += err * err
-			deltaSoma := err * prediction * (1 - prediction)
-			for i, output := range compartmentOutputs {
-				dn.somaWeights[i] += learningRate * deltaSoma * output
+			pred, outs := dn.Forward(d.inputs)
+			err := d.expected - pred
+			errSum += err * err
+
+			// Backpropagate at soma
+			delta := err * pred * (1.0 - pred)
+			for i, o := range outs {
+				dn.somaWeights[i] += lr * delta * o
 			}
-			dn.somaBias += learningRate * deltaSoma
+			dn.somaBias += lr * delta
+
+			// Backpropagate to compartments
 			for i, comp := range dn.compartments {
-				errorCompartment := deltaSoma * dn.somaWeights[i]
-				deltaCompartment := errorCompartment * (1 - math.Pow(compartmentOutputs[i], 2))
-				for j, input := range d.inputs {
-					comp.weights[j] += learningRate * deltaCompartment * input
+				ec := delta * dn.somaWeights[i]
+				dc := ec * (1.0 - outs[i]*outs[i])
+				for j, inp := range d.inputs {
+					comp.weights[j] += lr * dc * inp
 				}
-				comp.bias += learningRate * deltaCompartment
+				comp.bias += lr * dc
 			}
 		}
-		if epoch%2000 == 0 {
-			fmt.Printf("Epoch %d, Error: %f\n", epoch, totalError/float64(len(data)))
+
+		avgErr := errSum / float64(len(data))
+
+		// Check improvement
+		if bestErr-avgErr > minDelta {
+			bestErr = avgErr
+			noImprovement = 0
+		} else {
+			noImprovement++
+		}
+
+		// Log progress every 1000 epochs
+		if e%1000 == 0 {
+			fmt.Printf("Epoch %d, Error: %.6f, LR: %.5f\n", e, avgErr, lr)
+		}
+
+		// Early stopping
+		if noImprovement >= patience {
+			fmt.Printf("Early stopping at epoch %d, Error: %.6f\n", e, avgErr)
+			return
+		}
+
+		// Decay learning rate every 2000 epochs
+		if e > 0 && e%2000 == 0 {
+			lr *= 0.9
 		}
 	}
 }
 
-// --- 4. New Data Generation ---
-func generateCircleData(numPoints int, radius float64) []TrainingData {
-	data := make([]TrainingData, numPoints)
-	for i := 0; i < numPoints; i++ {
-		// Generate points in a [-2, 2] range for x and y
+// --- 5. Data Generation ---
+func generateCircleData(n int, radius float64) []TrainingData {
+	data := make([]TrainingData, n)
+	for i := range data {
 		x := rand.Float64()*4 - 2
 		y := rand.Float64()*4 - 2
-		inputs := []float64{x, y}
-
-		// Check if the point is inside the circle
-		distanceSq := x*x + y*y
-		expected := 0.0
-		if distanceSq < radius*radius {
-			expected = 1.0
+		label := 0.0
+		if x*x+y*y < radius*radius {
+			label = 1.0
 		}
-		data[i] = TrainingData{inputs: inputs, expected: expected}
+		data[i] = TrainingData{
+			inputs:   []float64{x, y},
+			expected: label,
+		}
 	}
 	return data
 }
 
-// --- 5. Main Execution (Updated) ---
+// --- 6. Main ---
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	// Generate data for the circle classification problem
-	fmt.Println("--- Generating Circle Training Data ---")
-	radius := 1.0
-	circleData := generateCircleData(200, radius)
-	fmt.Printf("Generated %d data points for a circle with radius %.1f\n\n", len(circleData), radius)
+	// Generate training data
+	data := generateCircleData(200, 1.0)
 
-	// Create a more complex neuron with 8 compartments
+	// Create neuron with 8 compartments
 	neuron := NewDendriticNeuron(2, 8)
 
-	fmt.Println("--- Training Neuron on Circle problem ---")
-	neuron.Train(circleData, 20000, 0.1)
-	fmt.Println("\n--- Training Complete ---")
+	// Train with max 20k epochs, init LR=0.1, patience=3000, minDelta=1e-4
+	neuron.Train(data, 20000, 0.1, 3000, 1e-4)
 
-	fmt.Println("\n--- Testing Trained Neuron ---")
+	// Evaluate accuracy
 	correct := 0
-	for _, d := range circleData {
-		prediction, _ := neuron.Forward(d.inputs)
-		roundedPrediction := math.Round(prediction)
-		if roundedPrediction == d.expected {
+	for _, d := range data {
+		pred, _ := neuron.Forward(d.inputs)
+		if math.Round(pred) == d.expected {
 			correct++
 		}
 	}
-
-	accuracy := float64(correct) / float64(len(circleData)) * 100
-	fmt.Printf("\nFinal Accuracy: %.2f%%\n", accuracy)
-
-	fmt.Println("\n--- Sample Predictions ---")
-	for i := 0; i < 10; i++ {
-		d := circleData[i]
-		prediction, _ := neuron.Forward(d.inputs)
-		fmt.Printf("Input: [%.2f, %.2f], Expected: %.0f, Prediction: %.4f, Correct: %t\n",
-			d.inputs[0], d.inputs[1], d.expected, prediction, math.Round(prediction) == d.expected)
-	}
+	accuracy := float64(correct) / float64(len(data)) * 100.0
+	fmt.Printf("Final Accuracy: %.2f%%\n", accuracy)
 }

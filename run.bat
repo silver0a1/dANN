@@ -1,0 +1,2 @@
+go run dendritic_neuron_circle.go
+pause
