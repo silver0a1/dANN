@@ -20,3 +20,16 @@ Both examples include:
 
 ---
 
+Refactor code: removed non-ASCII spaces, ensured all braces match, and normalized formatting with go fmt
+
+Unified logging: consolidated fmt.Printf calls onto single lines using \n
+
+Adaptive learning rate: added initLR parameter, decayed LR by 10% every 2,000 epochs
+
+Early stopping: added patience and minDelta parameters to halt training when no improvement
+
+Enhanced Train signature in both dendritic_neuron.go and dendritic_neuron_circle.go
+
+XOR example (dendritic_neuron.go): updated to use adaptive LR & early stopping, formatted predictions output
+
+Circle example (dendritic_neuron_circle.go): same enhancements plus generateCircleData() and final accuracy report
