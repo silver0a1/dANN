@@ -126,32 +126,3 @@ func main() {
 * **Parameters**:  
   * data (mat.Matrix): The input data to predict on.  
 * **Returns**: A mat.Matrix containing the model's output.
-
-## **5\. Code Examples**
-
-The repository includes two example scripts in the cmd directory demonstrating how to use dANN.
-
-### **cmd/xor**
-
-This script implements the simple XOR example shown in the Quick Start section. It's a great starting point to verify that the framework is working correctly and to understand the basic API flow.  
-**To run it:**  
-go run ./cmd/xor
-
-### **cmd/mnist**
-
-This is a more advanced example that demonstrates how to classify handwritten digits from the MNIST dataset.  
-**Key aspects of cmd/mnist:**
-
-1. **Data Loading**: It uses the petar/GoMNIST library to load the MNIST dataset from the local file system. You must download the dataset files first.  
-2. **Model Architecture**: The model is built for multi-class classification:  
-   * An input size of 784 (for 28x28 pixel images).  
-   * A hidden layer with the ReLU activation function.  
-   * An output layer with 10 neurons (one for each digit) and the Sigmoid activation function.  
-3. **Training**: It trains the network using Mean Squared Error and evaluates its accuracy on the test set.
-
-**To run it:**  
-\# First, get the GoMNIST dependency  
-go get github.com/petar/GoMNIST
-
-\# Then, run the main program  
-go run ./cmd/mnist  
