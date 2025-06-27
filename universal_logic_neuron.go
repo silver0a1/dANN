@@ -37,7 +37,7 @@ type DendriticNeuron struct {
 	somaWeights  []float64
 	somaBias     float64
 	labelWeights map[string]float64
-	mu           sync.Mutex
+	mu           sync.RWMutex
 }
 
 func NewDendriticNeuron(numInputs, numCompartments int) *DendriticNeuron {
@@ -71,9 +71,9 @@ func (dn *DendriticNeuron) Forward(inputs []float64, label string) (float64, []f
 		sum += o * dn.somaWeights[i]
 	}
 
-	dn.mu.Lock()
+	dn.mu.RLock()
 	labelWeight := dn.labelWeights[label]
-	dn.mu.Unlock()
+	dn.mu.RUnlock()
 
 	sum += labelWeight
 	return sigmoid(sum), compOuts
@@ -86,11 +86,9 @@ type TrainingData struct {
 }
 
 // --- Input normalization ---
+// Identity: keep inputs 0 or 1 as is
 func normalizeInput(x float64) float64 {
-	if x == 0 {
-		return -1
-	}
-	return 1
+	return x
 }
 
 // --- Training with batch gradient accumulation and concurrency ---
@@ -198,7 +196,7 @@ func main() {
 	adderData := makeFullAdderData()
 	allData := append(gateData, adderData...)
 
-	neuron := NewDendriticNeuron(3, 16) // 16 compartments
+	neuron := NewDendriticNeuron(3, 64) // 3 inputs max, 64 compartments
 
 	fmt.Println("Training universal neuron on all logic gates and blocks...")
 	epochs := 40000
