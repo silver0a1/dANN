@@ -18,9 +18,9 @@ type DendriticCompartment struct {
 func NewDendriticCompartment(numInputs int) *DendriticCompartment {
 	w := make([]float64, numInputs)
 	for i := range w {
-		w[i] = rand.Float64()*2 - 1
+		w[i] = rand.Float64()*0.1 - 0.05 // smaller init weights for stability
 	}
-	return &DendriticCompartment{weights: w, bias: rand.Float64()*2 - 1}
+	return &DendriticCompartment{weights: w, bias: rand.Float64()*0.1 - 0.05}
 }
 
 func (dc *DendriticCompartment) Process(inputs []float64) float64 {
@@ -36,10 +36,8 @@ type DendriticNeuron struct {
 	compartments []*DendriticCompartment
 	somaWeights  []float64
 	somaBias     float64
-
 	labelWeights map[string]float64
-
-	mu sync.Mutex
+	mu           sync.Mutex
 }
 
 func NewDendriticNeuron(numInputs, numCompartments int) *DendriticNeuron {
@@ -49,12 +47,12 @@ func NewDendriticNeuron(numInputs, numCompartments int) *DendriticNeuron {
 	}
 	somaW := make([]float64, numCompartments)
 	for i := range somaW {
-		somaW[i] = rand.Float64()*2 - 1
+		somaW[i] = rand.Float64()*0.1 - 0.05
 	}
 	return &DendriticNeuron{
 		compartments: comps,
 		somaWeights:  somaW,
-		somaBias:     rand.Float64()*2 - 1,
+		somaBias:     rand.Float64()*0.1 - 0.05,
 		labelWeights: make(map[string]float64),
 	}
 }
@@ -65,16 +63,19 @@ func sigmoid(x float64) float64 {
 
 func (dn *DendriticNeuron) Forward(inputs []float64, label string) (float64, []float64) {
 	compOuts := make([]float64, len(dn.compartments))
-	for i, c := range dn.compartments {
-		compOuts[i] = c.Process(inputs)
+	for i := range dn.compartments {
+		compOuts[i] = dn.compartments[i].Process(inputs)
 	}
 	sum := dn.somaBias
 	for i, o := range compOuts {
 		sum += o * dn.somaWeights[i]
 	}
+
 	dn.mu.Lock()
-	sum += dn.labelWeights[label] // Add label influence (lock for safe read)
+	labelWeight := dn.labelWeights[label]
 	dn.mu.Unlock()
+
+	sum += labelWeight
 	return sigmoid(sum), compOuts
 }
 
@@ -84,11 +85,28 @@ type TrainingData struct {
 	label    string
 }
 
-// --- Multithreaded training worker ---
+// --- Input normalization ---
+func normalizeInput(x float64) float64 {
+	if x == 0 {
+		return -1
+	}
+	return 1
+}
+
+// --- Training with batch gradient accumulation and concurrency ---
 func trainWorker(dn *DendriticNeuron, samples []TrainingData, lr float64, wg *sync.WaitGroup, loss *float64, lossMu *sync.Mutex) {
 	defer wg.Done()
 
 	localLoss := 0.0
+
+	somaWeightGrad := make([]float64, len(dn.somaWeights))
+	var somaBiasGrad float64
+	labelWeightGrad := make(map[string]float64)
+	compWeightGrad := make([][]float64, len(dn.compartments))
+	compBiasGrad := make([]float64, len(dn.compartments))
+	for i := range dn.compartments {
+		compWeightGrad[i] = make([]float64, len(dn.compartments[i].weights))
+	}
 
 	for _, d := range samples {
 		pred, outs := dn.Forward(d.inputs, d.label)
@@ -96,101 +114,61 @@ func trainWorker(dn *DendriticNeuron, samples []TrainingData, lr float64, wg *sy
 		localLoss += err * err
 		delta := err * pred * (1 - pred)
 
-		dn.mu.Lock()
-		// Update soma weights & bias
 		for i, o := range outs {
-			dn.somaWeights[i] += lr * delta * o
+			somaWeightGrad[i] += delta * o
 		}
-		dn.somaBias += lr * delta
-		// Update label weights
-		dn.labelWeights[d.label] += lr * delta
-		// Update dendritic compartments
-		for i, c := range dn.compartments {
+		somaBiasGrad += delta
+		labelWeightGrad[d.label] += delta
+
+		for i := range dn.compartments {
 			errC := delta * dn.somaWeights[i]
 			deltaC := errC * (1 - outs[i]*outs[i])
 			for j, x := range d.inputs {
-				c.weights[j] += lr * deltaC * x
+				compWeightGrad[i][j] += deltaC * x
 			}
-			c.bias += lr * deltaC
+			compBiasGrad[i] += deltaC
 		}
-		dn.mu.Unlock()
 	}
+
+	dn.mu.Lock()
+	for i := range dn.somaWeights {
+		dn.somaWeights[i] += lr * somaWeightGrad[i]
+	}
+	dn.somaBias += lr * somaBiasGrad
+	for label, grad := range labelWeightGrad {
+		dn.labelWeights[label] += lr * grad
+	}
+	for i := range dn.compartments {
+		for j := range dn.compartments[i].weights {
+			dn.compartments[i].weights[j] += lr * compWeightGrad[i][j]
+		}
+		dn.compartments[i].bias += lr * compBiasGrad[i]
+	}
+	dn.mu.Unlock()
 
 	lossMu.Lock()
 	*loss += localLoss
 	lossMu.Unlock()
 }
 
-// --- Training with multithreading, early stopping, adaptive LR ---
-func (dn *DendriticNeuron) Train(data []TrainingData, epochs int, lr float64, patience int, minDelta float64) {
-	bestError := math.MaxFloat64
-	noImprovement := 0
-
-	numCPU := runtime.NumCPU()
-
-	for epoch := 0; epoch < epochs; epoch++ {
-		var wg sync.WaitGroup
-		totalLoss := 0.0
-		var lossMu sync.Mutex
-
-		chunkSize := len(data) / numCPU
-
-		for i := 0; i < numCPU; i++ {
-			start := i * chunkSize
-			end := start + chunkSize
-			if i == numCPU-1 {
-				end = len(data)
-			}
-			wg.Add(1)
-			go trainWorker(dn, data[start:end], lr, &wg, &totalLoss, &lossMu)
-		}
-
-		wg.Wait()
-
-		avgError := totalLoss / float64(len(data))
-
-		if epoch%1000 == 0 {
-			fmt.Printf("Epoch %d, Error: %.6f, LR: %.5f\n", epoch, avgError, lr)
-		}
-
-		if bestError-avgError > minDelta {
-			bestError = avgError
-			noImprovement = 0
-		} else {
-			noImprovement++
-		}
-
-		if noImprovement >= patience {
-			fmt.Printf("Early stop at epoch %d, Error: %.6f\n", epoch, avgError)
-			break
-		}
-
-		if epoch > 0 && epoch%2000 == 0 {
-			lr *= 0.9
-		}
-	}
-}
-
-// --- Logic Gate & Logic Block Data ---
+// --- Generate training data for logic gates and blocks ---
 func makeLogicGateData() []TrainingData {
 	data := []TrainingData{}
 	inputs := [][]float64{{0, 0}, {0, 1}, {1, 0}, {1, 1}}
 	for _, in := range inputs {
-		a, b := in[0], in[1]
-		// Basic Gates
-		data = append(data, TrainingData{in, a * b, "AND"})
-		data = append(data, TrainingData{in, math.Max(a, b), "OR"})
-		data = append(data, TrainingData{in, 1 - a, "NOT_A"})
-		data = append(data, TrainingData{in, 1 - b, "NOT_B"})
-		data = append(data, TrainingData{in, 1 - a*b, "NAND"})
-		data = append(data, TrainingData{in, 1 - math.Max(a, b), "NOR"})
-		data = append(data, TrainingData{in, float64(int(a) ^ int(b)), "XOR"})
-		data = append(data, TrainingData{in, 1 - float64(int(a)^int(b)), "XNOR"})
-		data = append(data, TrainingData{in, a, "BUFFER_A"})
-		data = append(data, TrainingData{in, b, "BUFFER_B"})
-		// Logic Blocks - Half Adder
-		data = append(data, TrainingData{in, float64(int(a) ^ int(b)), "HALF_ADDER_SUM"})
-		data = append(data, TrainingData{in, a * b, "HALF_ADDER_CARRY"})
+		a, b := normalizeInput(in[0]), normalizeInput(in[1])
+		data = append(data, TrainingData{[]float64{a, b}, a * b, "AND"})
+		data = append(data, TrainingData{[]float64{a, b}, math.Max(a, b), "OR"})
+		data = append(data, TrainingData{[]float64{a, b}, 1 - a, "NOT_A"})
+		data = append(data, TrainingData{[]float64{a, b}, 1 - b, "NOT_B"})
+		data = append(data, TrainingData{[]float64{a, b}, 1 - a*b, "NAND"})
+		data = append(data, TrainingData{[]float64{a, b}, 1 - math.Max(a, b), "NOR"})
+		data = append(data, TrainingData{[]float64{a, b}, float64(int(a) ^ int(b)), "XOR"})
+		data = append(data, TrainingData{[]float64{a, b}, 1 - float64(int(a)^int(b)), "XNOR"})
+		data = append(data, TrainingData{[]float64{a, b}, a, "BUFFER_A"})
+		data = append(data, TrainingData{[]float64{a, b}, b, "BUFFER_B"})
+		data = append(data, TrainingData{[]float64{a, b}, float64(int(a) ^ int(b)), "HALF_ADDER_SUM"})
+		data = append(data, TrainingData{[]float64{a, b}, a * b, "HALF_ADDER_CARRY"})
 	}
 	return data
 }
@@ -201,7 +179,7 @@ func makeFullAdderData() []TrainingData {
 		{0, 0, 0}, {0, 0, 1}, {0, 1, 0}, {0, 1, 1},
 		{1, 0, 0}, {1, 0, 1}, {1, 1, 0}, {1, 1, 1},
 	} {
-		a, b, cin := in[0], in[1], in[2]
+		a, b, cin := normalizeInput(in[0]), normalizeInput(in[1]), normalizeInput(in[2])
 		sum := float64(int(a) ^ int(b) ^ int(cin))
 		cout := float64((int(a)&int(b)) | (int(b)&int(cin)) | (int(a)&int(cin)))
 		data = append(data, TrainingData{in, sum, "FULL_ADDER_SUM"})
@@ -220,10 +198,39 @@ func main() {
 	adderData := makeFullAdderData()
 	allData := append(gateData, adderData...)
 
-	neuron := NewDendriticNeuron(3, 8) // use 3 inputs to handle full adder
+	neuron := NewDendriticNeuron(3, 16) // 16 compartments
 
 	fmt.Println("Training universal neuron on all logic gates and blocks...")
-	neuron.Train(allData, 20000, 0.1, 3000, 1e-4)
+	epochs := 40000
+	lr := 0.05
+
+	for e := 0; e < epochs; e++ {
+		var wg sync.WaitGroup
+		totalLoss := 0.0
+		var lossMu sync.Mutex
+
+		chunkSize := len(allData) / runtime.NumCPU()
+		for i := 0; i < runtime.NumCPU(); i++ {
+			start := i * chunkSize
+			end := start + chunkSize
+			if i == runtime.NumCPU()-1 {
+				end = len(allData)
+			}
+			wg.Add(1)
+			go trainWorker(neuron, allData[start:end], lr, &wg, &totalLoss, &lossMu)
+		}
+		wg.Wait()
+
+		avgLoss := totalLoss / float64(len(allData))
+		if e%1000 == 0 {
+			fmt.Printf("Epoch %d, Error: %.6f, LR: %.5f\n", e, avgLoss, lr)
+		}
+
+		// LR decay every 2000 epochs
+		if e > 0 && e%2000 == 0 {
+			lr *= 0.9
+		}
+	}
 
 	fmt.Println("\nTesting trained neuron...\n")
 	total, correct := 0, 0
