@@ -9,7 +9,7 @@ To run the experiments, you need to have Go installed on your system. You can do
 Once Go is installed, you can run any of the experiments by executing the corresponding `.go` file. For example, to run the XOR experiment, you would use the following command:
 
 ```bash
-go run C:/run/TestGemCli/dANN/dendritic_neuron_xor.go
+go run dendritic_neuron_xor.go
 ```
 
 ## Experiments
@@ -23,7 +23,7 @@ This is the classic "hello world" of neural networks. The XOR problem is a simpl
 **To run:**
 
 ```bash
-go run C:/run/TestGemCli/dANN/dendritic_neuron_xor.go
+go run dendritic_neuron_xor.go
 ```
 
 **Expected Output:**
@@ -57,7 +57,7 @@ This experiment uses a full dANN to solve the XOR problem.
 **To run:**
 
 ```bash
-go run C:/run/TestGemCli/dANN/dann_reimplemented_xor.go
+go run dann_reimplemented_xor.go
 ```
 
 **Expected Output:**
@@ -89,7 +89,7 @@ This experiment trains a dANN to classify whether a point is inside or outside a
 **To run:**
 
 ```bash
-go run C:/run/TestGemCli/dANN/dendritic_neuron_circle.go
+go run dendritic_neuron_circle.go
 ```
 
 **Expected Output:**
@@ -118,7 +118,7 @@ This experiment trains a dANN to classify whether a point is inside a ring.
 **To run:**
 
 ```bash
-go run C:/run/TestGemCli/dANN/dendritic_neuron_ring.go
+go run dendritic_neuron_ring.go
 ```
 
 **Expected Output:**
@@ -146,7 +146,7 @@ This is a very challenging benchmark for classification algorithms. The dANN is 
 **To run:**
 
 ```bash
-go run C:/run/TestGemCli/dANN/dendritic_neuron_spirals.go
+go run dendritic_neuron_spirals.go
 ```
 
 **Expected Output:**
@@ -174,7 +174,7 @@ This experiment trains a dANN to classify whether a point is inside one of two d
 **To run:**
 
 ```bash
-go run C:/run/TestGemCli/dANN/dendritic_neuron_two_circles.go
+go run dendritic_neuron_two_circles.go
 ```
 
 **Expected Output:**
@@ -202,7 +202,7 @@ This experiment is a variation of the two circles problem, where the dANN has to
 **To run:**
 
 ```bash
-go run C:/run/TestGemCli/dANN/dendritic_neuron_xor_circles.go
+go run dendritic_neuron_xor_circles.go
 ```
 
 **Expected Output:**
@@ -230,7 +230,7 @@ This experiment trains a dANN to classify points on a checkerboard pattern.
 **To run:**
 
 ```bash
-go run C:/run/TestGemCli/dANN/dendritic_neuron_checkerboard.go
+go run dendritic_neuron_checkerboard.go
 ```
 
 **Expected Output:**
