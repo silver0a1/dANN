@@ -25,6 +25,7 @@ resource "vultr_instance" "gpu_dann_app" {
   # User data script to set up and run the application on instance boot.
   user_data = <<-EOT
     #!/bin/bash
+    set -e
     # Update package lists and install necessary tools
     apt update -y
     apt install -y git python3-venv
