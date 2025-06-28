@@ -307,7 +307,7 @@ func main() {
 
 	ann := NewdANN([]int{4, 8, 3}, 8) // 4 inputs, 8 hidden neurons, 3 outputs
 	fmt.Println("--- Training dANN on Iris problem ---")
-	ann.Train(trainData, 1000, 0.01)
+	ann.Train(trainData, 10000, 0.01)
 	fmt.Println("\n--- Training Complete ---")
 
 	fmt.Println("\n--- Testing Trained dANN on Iris ---")
