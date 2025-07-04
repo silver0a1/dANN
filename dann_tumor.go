@@ -355,7 +355,7 @@ func main() {
 	// 30 inputs (features), 15 hidden neurons (example), 2 outputs (Benign/Malignant)
 	ann := NewdANN([]int{30, 15, 2}, 8) 
 	fmt.Println("--- Training dANN on Tumor Classification problem ---")
-	ann.Train(trainData, 1000, 0.01)
+	ann.Train(trainData, 300, 0.01)
 	fmt.Println("\n--- Training Complete ---")
 
 	fmt.Println("\n--- Testing Trained dANN on Tumor Classification ---")
