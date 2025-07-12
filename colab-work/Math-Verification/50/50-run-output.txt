@@ -1,0 +1,170 @@
+======================================================================
+MULTI-FUNCTION MATHEMATICAL REASONING CHALLENGE
+======================================================================
+Model created with 2041 parameters
+Dataset created: 800 samples across 4 mathematical functions
+
+INITIAL PERFORMANCE (before training):
+   Polynomial: MSE = 2.4796
+Trigonometric: MSE = 0.6992
+         Step: MSE = 0.2870
+  Exponential: MSE = 1.1009
+
+INITIAL GATING ANALYSIS:
+Polynomial gates:     tensor([0.9661, 0.8441, 0.1865, 0.3145, 0.2039, 0.3684, 0.3343, 0.5779],
+       grad_fn=<SliceBackward0>)
+Trigonometric gates:  tensor([0.9424, 0.8507, 0.2479, 0.3376, 0.2339, 0.4481, 0.3733, 0.6268],
+       grad_fn=<SliceBackward0>)
+Step gates:           tensor([0.9628, 0.7936, 0.2137, 0.3114, 0.2542, 0.4101, 0.2863, 0.6746],
+       grad_fn=<SliceBackward0>)
+Exponential gates:    tensor([0.9554, 0.7329, 0.2809, 0.2303, 0.2022, 0.3703, 0.3100, 0.6025],
+       grad_fn=<SliceBackward0>)
+Average pairwise gate difference: 0.2110
+
+Starting training for 50 epochs...
+Using differential learning rates: Main=0.003, Hypernetwork=0.01
+Epoch  50: Loss = 0.0028, Hyper diff = 77.6184, Hyper grad = 0.0342
+
+FINAL PERFORMANCE (after training):
+   Polynomial: MSE = 0.002261
+Trigonometric: MSE = 0.001606
+         Step: MSE = 0.000992
+  Exponential: MSE = 0.000456
+
+CONTEXT SWITCHING DEMONSTRATION:
+Input x=1.0:
+  Polynomial context:    y = 1.0114 (true: 1.0000)
+  Trigonometric context: y = 0.9104 (true: 1.0000)
+  Step context:          y = 1.0009 (true: 1.0000)
+  Exponential context:   y = 1.6609 (true: 1.6487)
+
+FINAL GATING ANALYSIS:
+Polynomial gates:     tensor([9.4732e-01, 4.1632e-05, 5.5322e-04, 3.7550e-05, 1.2411e-01, 9.9727e-01,
+        9.9836e-01, 1.0000e+00], grad_fn=<SliceBackward0>)
+Trigonometric gates:  tensor([9.9987e-01, 1.0299e-04, 5.4748e-01, 9.9979e-01, 2.7868e-06, 9.9780e-01,
+        5.9365e-04, 8.6078e-03], grad_fn=<SliceBackward0>)
+Step gates:           tensor([3.6235e-12, 2.6332e-18, 6.1334e-01, 3.6913e-01, 1.4089e-04, 4.3226e-01,
+        5.6822e-01, 1.0000e+00], grad_fn=<SliceBackward0>)
+Exponential gates:    tensor([2.7729e-08, 7.0788e-05, 1.0000e+00, 8.2898e-05, 2.0566e-02, 1.3353e-03,
+        9.9962e-01, 1.0000e+00], grad_fn=<SliceBackward0>)
+Final average pairwise gate difference: 1.8243
+================================================================================
+MATHEMATICAL VERIFICATION REPORT
+================================================================================
+
+1. FUNCTION APPROXIMATION QUALITY
+----------------------------------------
+
+POLYNOMIAL:
+  MSE: 0.002184
+  MAE: 0.036335
+  R²:  0.998471
+  Max Error: 0.134684
+  Mean Relative Error: 676.9010%
+
+TRIGONOMETRIC:
+  MSE: 0.001448
+  MAE: 0.030076
+  R²:  0.997101
+  Max Error: 0.092822
+  Mean Relative Error: 15.5534%
+
+STEP:
+  MSE: 0.002412
+  MAE: 0.020603
+  R²:  0.990351
+  Max Error: 0.590562
+  Mean Relative Error: 1.5818%
+
+EXPONENTIAL:
+  MSE: 0.000421
+  MAE: 0.017316
+  R²:  0.999029
+  Max Error: 0.047830
+  Mean Relative Error: 1.9075%
+
+
+2. CONTEXT SEPARATION VERIFICATION
+----------------------------------------
+
+x=-1.50:
+  polynomial     : pred= 2.1987, true= 2.2500, error= 0.0513
+  trigonometric  : pred=-0.7338, true=-0.7071, error= 0.0267
+  step           : pred= 0.0099, true= 0.0000, error= 0.0099
+  exponential    : pred= 0.4580, true= 0.4724, error= 0.0144
+
+x=0.00:
+  polynomial     : pred=-0.0109, true= 0.0000, error= 0.0109
+  trigonometric  : pred= 0.0222, true= 0.0000, error= 0.0222
+  step           : pred= 0.6170, true= 0.0000, error= 0.6170
+  exponential    : pred= 0.9919, true= 1.0000, error= 0.0081
+
+x=0.50:
+  polynomial     : pred= 0.2238, true= 0.2500, error= 0.0262
+  trigonometric  : pred= 0.6894, true= 0.7071, error= 0.0177
+  step           : pred= 0.9790, true= 1.0000, error= 0.0210
+  exponential    : pred= 1.2761, true= 1.2840, error= 0.0079
+
+x=1.00:
+  polynomial     : pred= 1.0114, true= 1.0000, error= 0.0114
+  trigonometric  : pred= 0.9104, true= 1.0000, error= 0.0896
+  step           : pred= 1.0009, true= 1.0000, error= 0.0009
+  exponential    : pred= 1.6609, true= 1.6487, error= 0.0122
+
+x=1.50:
+  polynomial     : pred= 2.3048, true= 2.2500, error= 0.0548
+  trigonometric  : pred= 0.7705, true= 0.7071, error= 0.0634
+  step           : pred= 1.0098, true= 1.0000, error= 0.0098
+  exponential    : pred= 2.1417, true= 2.1170, error= 0.0247
+
+
+3. MATHEMATICAL PROPERTIES VERIFICATION
+----------------------------------------
+
+POLYNOMIAL (x²):
+  Symmetric: True (error: 0.007318)
+  Minimum at x = -0.0306 (error: 0.030612)
+  Quadratic growth error: 3.135094
+
+TRIGONOMETRIC (sin(2πx/4)):
+  Periodic: False (error: 1.276055)
+  Zero crossing error: 0.064353
+  Amplitude: 0.9611 (error: 0.038861)
+
+STEP FUNCTION:
+  Negative side error: 0.016745
+  Positive side error: 0.011570
+  Sharp transition: True (sharpness: 13.57)
+
+EXPONENTIAL (exp(x/2)):
+  f(0) = 0.9919 (error: 0.008146)
+  Growth rate error: 0.201891
+  Always positive: True (min: 0.399974)
+
+
+4. GRADIENT FLOW VERIFICATION
+----------------------------------------
+  Input gradient magnitude: 2.163530
+  Main network gradient norm: 0.199111
+  Hypernetwork gradient norm: 0.224101
+  Gradient flow healthy: True
+
+
+5. GATE DIFFERENTIATION VERIFICATION
+----------------------------------------
+  Mean pairwise gate distance: 0.338905
+  Min pairwise gate distance: 0.197014
+  All patterns sufficiently different: True
+
+
+6. OVERALL ASSESSMENT
+----------------------------------------
+  All functions well approximated (R² > 0.95): True
+  Mathematical properties satisfied: False
+  Gradient flow healthy: True
+  Gate patterns differentiated: True
+
+  ✓ VERIFICATION FAILED
+
+  Plots saved: verification_plots.png, gate_patterns.png
+PS C:\run\Math-Verification>
