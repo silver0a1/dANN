@@ -6,6 +6,7 @@ concepts to implement for the hyper-dANN:
 -known context vs unknown context ie do we use a RNN to determine context for the hypernetwork?
 -investigate adaptable architecture to expand on last point: what is the trigger/threshold/method
 -seed randomization to test stability
+-adaptive task routing for the MTL structure of hyper-dANN
 
 
 NLP tasks:
