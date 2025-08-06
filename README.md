@@ -1,3 +1,8 @@
+# NOTE
+
+See colab-work folder for hyper-gate dendritic artificial neural network implementation
+
+
 # dANN: Dendritic Artificial Neural Networks
 
 This project explores the capabilities of dendritic artificial neural networks (dANNs), a biologically-inspired neural network architecture. The key idea is that individual neurons can perform complex non-linear computations, thanks to their dendritic structures. This repository provides a Go implementation of dANNs and demonstrates their effectiveness on various classification tasks.
