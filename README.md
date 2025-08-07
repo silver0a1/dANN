@@ -1,6 +1,6 @@
 # NOTE
 
-See colab-work folder for hyper-gate dendritic artificial neural network implementation
+See colab-work folder for hyper-gated dendritic artificial neural network implementation
 
 
 # dANN: Dendritic Artificial Neural Networks
