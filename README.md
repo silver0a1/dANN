@@ -19,9 +19,11 @@ go run dendritic_neuron_xor.go
 
 ## Experiments
 
-This repository includes several experiments that showcase the dANN's ability to solve linearly non-separable problems. Each experiment is self-contained in its own `.go` file.
+This repository includes several experiments that showcase the dendritic neuron's ability to solve linearly non-separable problems. Each experiment is self-contained in its own `.go` file.
 
-### 1. XOR Problem
+There are additional python files for implementations able to use the GPU along with other model architectures such as the hyper-gated dANN.
+
+### 1. XOR Problem Single Dendritic Neuron
 
 This is the classic "hello world" of neural networks. The XOR problem is a simple binary classification task where the output is 1 if the inputs are different, and 0 otherwise.
 
@@ -55,7 +57,7 @@ Input: [1, 0], Expected: 1, Prediction: 0.9743, Rounded: 1
 Input: [1, 1], Expected: 0, Prediction: 0.0279, Rounded: 0
 ```
 
-### 2. Reimplemented XOR Problem with dANN
+### 2. Reimplemented XOR Problem with full dANN
 
 This experiment uses a full dANN to solve the XOR problem.
 
@@ -89,7 +91,7 @@ Final Accuracy on XOR: 100.00%
 
 ### 3. Circle Problem
 
-This experiment trains a dANN to classify whether a point is inside or outside a circle.
+This experiment trains a dendritic neuron to classify whether a point is inside or outside a circle.
 
 **To run:**
 
@@ -118,7 +120,7 @@ Final Accuracy: 100.00%
 
 ### 4. Ring Problem
 
-This experiment trains a dANN to classify whether a point is inside a ring.
+This experiment trains a dendritic neuron to classify whether a point is inside a ring.
 
 **To run:**
 
@@ -146,7 +148,7 @@ Final Accuracy on Ring: 99.80%
 
 ### 5. Two Spirals Problem
 
-This is a very challenging benchmark for classification algorithms. The dANN is trained to distinguish between two intertwined spirals.
+This is a very challenging benchmark for classification algorithms. The dendritic neuron is trained to distinguish between two intertwined spirals.
 
 **To run:**
 
@@ -174,7 +176,7 @@ Final Accuracy on Two Spirals: 99.00%
 
 ### 6. Two Circles Problem
 
-This experiment trains a dANN to classify whether a point is inside one of two disjoint circles.
+This experiment trains a dendritic neuron to classify whether a point is inside one of two disjoint circles.
 
 **To run:**
 
@@ -202,7 +204,7 @@ Final Accuracy on Two Disjoint Circles: 100.00%
 
 ### 7. XOR Circles Problem
 
-This experiment is a variation of the two circles problem, where the dANN has to learn the XOR of the two circles.
+This experiment is a variation of the two circles problem, where the dendritic neuron has to learn the XOR of the two circles.
 
 **To run:**
 
@@ -230,7 +232,7 @@ Final Accuracy on XOR of Two Circles: 99.80%
 
 ### 8. Checkerboard Problem
 
-This experiment trains a dANN to classify points on a checkerboard pattern.
+This experiment trains a dendritic neuron to classify points on a checkerboard pattern.
 
 **To run:**
 
@@ -256,7 +258,7 @@ Epoch 45000, Error: 0.059157
 Final Accuracy on Checkerboard: 94.20%
 ```
 
-## How it Works
+## How dANN Works
 
 The core of the implementation is the `DendriticNeuron` struct, which contains a set of `DendriticCompartment`s. Each compartment takes all the inputs and applies a non-linear function (tanh). The outputs of the compartments are then weighted and summed up in the soma, which applies a final non-linear function (sigmoid).
 
