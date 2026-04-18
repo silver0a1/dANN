@@ -261,7 +261,6 @@ The training process uses backpropagation to adjust the weights of both the soma
 
 ## Further Reading
 
-The PDF documents in this repository provide more background on dendritic neurons and their relationship to other neural network architectures.
+The PDF documents in this repository provide more background on dendritic neurons. This is the most concise explanation:
 
 *   **LunchnLearn-Dendritic Neuron Brief.pdf**: A brief introduction to dendritic neurons.
-*   **Transformer Arch and Dendritic Networks.pdf**: A more in-depth paper that explores the relationship between transformer architectures and dendritic networks.
